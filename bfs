@@ -1,0 +1,40 @@
+% Facts: Heuristic values for each city
+h(a, 7).
+h(b, 4).
+h(c, 2).
+h(d, 0). % Goal city
+
+% Facts: Direct road distances
+road(a, b, 2).
+road(a, c, 4).
+road(b, d, 5).
+road(c, d, 1).
+
+% Helper: Roads are bidirectional
+connected(X, Y, D) :- road(X, Y, D).
+connected(X, Y, D) :- road(Y, X, D).
+
+% Best First Search Implementation
+best_first_search(Start, Goal, Path, Cost) :-
+    bfs([[Start, 0]], Goal, [], Path, Cost).
+
+% Recursive BFS Function
+bfs([[Node, Cost]|_], Node, Visited, Path, Cost) :-
+    reverse([Node|Visited], Path).  % Goal found: return the path
+bfs([[Node, CurrentCost]|Rest], Goal, Visited, Path, Cost) :-
+    findall(
+        [NextNode, NewCost],
+        (
+            connected(Node, NextNode, StepCost), % Find connected nodes
+            \+ member(NextNode, Visited),       % Avoid revisiting
+            h(NextNode, Heuristic),             % Get heuristic
+            NewCost is CurrentCost + StepCost + Heuristic
+        ),
+        Children
+    ),
+    append(Rest, Children, AllPaths),           % Add children to the queue
+    sort(2, @=<, AllPaths, SortedPaths),        % Sort by cost (greedy choice)
+    bfs(SortedPaths, Goal, [Node|Visited], Path, Cost). % Continue searching
+
+% Example query:
+% ?- best_first_search(a, d, Path, Cost).
